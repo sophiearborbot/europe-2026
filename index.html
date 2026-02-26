@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🇪🇺 Arbor Family Europe 2026 — Paris to Amsterdam</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; background: #1a1a2e; color: #eee; }
+  header {
+    padding: 18px 24px;
+    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  }
+  header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: 0.02em; }
+  header p  { font-size: 0.85rem; color: #aac; margin-top: 2px; }
+  .container { display: flex; height: calc(100vh - 72px); }
+  #map { flex: 1; }
+  .sidebar {
+    width: 320px; background: #16213e; overflow-y: auto;
+    padding: 16px; border-left: 1px solid #0f3460;
+  }
+  .route-toggle {
+    margin-bottom: 10px; padding: 12px 14px;
+    border-radius: 10px; cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    display: flex; align-items: center; gap: 10px;
+    user-select: none;
+  }
+  .route-toggle:hover { filter: brightness(1.1); }
+  .route-toggle.active { border-color: white; }
+  .route-toggle .dot {
+    width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  }
+  .route-toggle .name { font-weight: 700; font-size: 0.9rem; line-height: 1.3; }
+  .route-toggle .sub  { font-size: 0.75rem; color: #aaa; margin-top: 2px; }
+  .route-toggle .cost { font-size: 0.8rem; color: #7ec8e3; margin-top: 3px; }
+  .section-title {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: #778; margin: 18px 0 8px;
+  }
+  .city-card {
+    background: #0f3460; border-radius: 8px; padding: 10px 12px;
+    margin-bottom: 8px; cursor: pointer;
+    border: 1px solid #1a4080;
+    transition: background 0.15s;
+  }
+  .city-card:hover { background: #1a4a80; }
+  .city-card .city-name { font-weight: 700; font-size: 0.9rem; }
+  .city-card .city-hotel { font-size: 0.78rem; color: #aac; margin-top: 2px; }
+  .city-card .city-cost  { font-size: 0.78rem; color: #7ec8e3; margin-top: 2px; }
+  #city-detail {
+    display: none; background: #0f3460; border-radius: 10px;
+    padding: 16px; margin-top: 12px; border: 1px solid #1a4080;
+  }
+  #city-detail h3 { font-size: 1.1rem; margin-bottom: 6px; }
+  #city-detail .label { font-size: 0.72rem; text-transform: uppercase;
+    letter-spacing: 0.08em; color: #778; margin-top: 10px; margin-bottom: 2px; }
+  #city-detail .val { font-size: 0.88rem; line-height: 1.4; }
+  #city-detail a {
+    display: inline-block; margin-top: 10px; padding: 7px 14px;
+    background: #e74c3c; color: white; border-radius: 6px; text-decoration: none;
+    font-size: 0.82rem; font-weight: 600;
+  }
+  #city-detail a:hover { background: #c0392b; }
+  .gmaps-btn {
+    display: inline-block; margin-top: 6px; margin-left: 8px;
+    padding: 7px 14px;
+    background: #4285F4; color: white; border-radius: 6px;
+    text-decoration: none; font-size: 0.82rem; font-weight: 600;
+  }
+  .gmaps-btn:hover { background: #3367d6; }
+  .legend {
+    position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+    background: rgba(22,33,62,0.92); border-radius: 10px;
+    padding: 12px 16px; font-size: 0.82rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  .legend-line {
+    width: 24px; height: 4px; border-radius: 2px;
+  }
+  @media (max-width: 700px) {
+    .sidebar { width: 100%; max-height: 40vh; }
+    .container { flex-direction: column-reverse; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🇪🇺 Arbor Family — Europe 2026</h1>
+    <p>Paris → Amsterdam &nbsp;·&nbsp; June 19 – 28 &nbsp;·&nbsp; 3 Routes to Explore</p>
+  </div>
+  <div style="font-size:1.8rem">✈️</div>
+</header>
+
+<div class="container">
+  <div id="map"></div>
+  <div class="sidebar">
+    <div class="section-title">Choose a Route</div>
+    <div id="route-toggles"></div>
+
+    <div class="section-title">Cities on Selected Route</div>
+    <div id="city-list"></div>
+
+    <div id="city-detail"></div>
+  </div>
+</div>
+
+<div class="legend" id="legend"></div>
+
+<script>
+const ROUTES = [
+  {
+    "name": "Route 1 \u2013 \ud83c\udfd4\ufe0f Alpine Arc",
+    "color": "#e74c3c",
+    "cities": [
+      {
+        "name": "Paris",
+        "country": "France",
+        "hotel": "H\u00f4tel des Grands Boulevards",
+        "cost": 320,
+        "highlights": "Eiffel Tower, Seine cruise, Louvre",
+        "booking_url": "https://www.booking.com/hotel/fr/des-grands-boulevards.html",
+        "coords": [
+          48.8566,
+          2.3522
+        ]
+      },
+      {
+        "name": "Interlaken",
+        "country": "Switzerland",
+        "hotel": "Hotel Royal St Georges \u2013 MGallery",
+        "cost": 220,
+        "highlights": "H\u00f6heweg promenade, Lake Thun boat cruise, Harder Kulm funicular",
+        "booking_url": "https://www.booking.com/hotel/ch/royal-st-georges.html",
+        "coords": [
+          46.6863,
+          7.8632
+        ]
+      },
+      {
+        "name": "Lucerne",
+        "country": "Switzerland",
+        "hotel": "Cascada Boutique Hotel",
+        "cost": 250,
+        "highlights": "Chapel Bridge (Kapellbr\u00fccke), Lion Monument, Lake Lucerne, Old Town",
+        "booking_url": "https://www.booking.com/hotel/ch/cascada-boutique.html",
+        "coords": [
+          47.0502,
+          8.3093
+        ]
+      },
+      {
+        "name": "Cologne",
+        "country": "Germany",
+        "hotel": "Hopper Hotel et cetera",
+        "cost": 185,
+        "highlights": "Cologne Cathedral (Dom), Chocolate Museum, Rhine promenade, Old Town Altstadt",
+        "booking_url": "https://www.booking.com/hotel/de/hopper-et-cetera.html",
+        "coords": [
+          50.9333,
+          6.95
+        ]
+      },
+      {
+        "name": "Amsterdam",
+        "country": "Netherlands",
+        "hotel": "The Hoxton Amsterdam",
+        "cost": 280,
+        "highlights": "Canal cruise, Rijksmuseum, Jordaan district, evening canal stroll",
+        "booking_url": "https://www.booking.com/hotel/nl/the-hoxton-amsterdam.html",
+        "coords": [
+          52.3676,
+          4.9041
+        ]
+      }
+    ],
+    "latlngs": [
+      [
+        48.8566,
+        2.3522
+      ],
+      [
+        46.6863,
+        7.8632
+      ],
+      [
+        47.0502,
+        8.3093
+      ],
+      [
+        50.9333,
+        6.95
+      ],
+      [
+        52.3676,
+        4.9041
+      ]
+    ]
+  },
+  {
+    "name": "Route 2 \u2013 \ud83c\udff0 Rhine Valley",
+    "color": "#3498db",
+    "cities": [
+      {
+        "name": "Paris",
+        "country": "France",
+        "hotel": "H\u00f4tel des Grands Boulevards",
+        "cost": 320,
+        "highlights": "Eiffel Tower, Seine cruise, Louvre",
+        "booking_url": "https://www.booking.com/hotel/fr/des-grands-boulevards.html",
+        "coords": [
+          48.8566,
+          2.3522
+        ]
+      },
+      {
+        "name": "Strasbourg",
+        "country": "France",
+        "hotel": "Cour du Corbeau \u2013 MGallery",
+        "cost": 210,
+        "highlights": "Grande \u00cele (UNESCO), Cath\u00e9drale Notre-Dame, Petite France district",
+        "booking_url": "https://www.booking.com/hotel/fr/cour-du-corbeau.html",
+        "coords": [
+          48.5734,
+          7.7521
+        ]
+      },
+      {
+        "name": "Heidelberg",
+        "country": "Germany",
+        "hotel": "Hotel Zum Ritter St. Georg",
+        "cost": 185,
+        "highlights": "Heidelberg Castle ruins, Philosophenweg (Philosopher's Walk), Neckar River",
+        "booking_url": "https://www.booking.com/hotel/de/zum-ritter-heidelberg.html",
+        "coords": [
+          49.3988,
+          8.6724
+        ]
+      },
+      {
+        "name": "Bacharach",
+        "country": "Germany",
+        "hotel": "Rhein Hotel Bacharach",
+        "cost": 130,
+        "highlights": "Rhine Gorge (UNESCO), Stahleck Castle, village wine taverns, KD Rhine cruise",
+        "booking_url": "https://www.booking.com/hotel/de/rhein-hotel-bacharach.html",
+        "coords": [
+          50.0577,
+          7.7699
+        ]
+      },
+      {
+        "name": "Cologne",
+        "country": "Germany",
+        "hotel": "Boutique Hotel Domspitzen",
+        "cost": 185,
+        "highlights": "Cologne Cathedral, Chocolate Museum, Altstadt, Rhine promenade",
+        "booking_url": "https://www.booking.com/hotel/de/boutique-003-koln-amdom.html",
+        "coords": [
+          50.9333,
+          6.95
+        ]
+      },
+      {
+        "name": "Amsterdam",
+        "country": "Netherlands",
+        "hotel": "The Hoxton Amsterdam",
+        "cost": 280,
+        "highlights": "Rijksmuseum, Van Gogh Museum, canal cruise, Jordaan",
+        "booking_url": "https://www.booking.com/hotel/nl/the-hoxton-amsterdam.html",
+        "coords": [
+          52.3676,
+          4.9041
+        ]
+      }
+    ],
+    "latlngs": [
+      [
+        48.8566,
+        2.3522
+      ],
+      [
+        48.5734,
+        7.7521
+      ],
+      [
+        49.3988,
+        8.6724
+      ],
+      [
+        50.0577,
+        7.7699
+      ],
+      [
+        50.9333,
+        6.95
+      ],
+      [
+        52.3676,
+        4.9041
+      ]
+    ]
+  },
+  {
+    "name": "Route 3 \u2013 \ud83c\udf7a Belgian Lowlands",
+    "color": "#27ae60",
+    "cities": [
+      {
+        "name": "Paris",
+        "country": "France",
+        "hotel": "H\u00f4tel des Grands Boulevards",
+        "cost": 320,
+        "highlights": "Eiffel Tower, Seine cruise, Louvre",
+        "booking_url": "https://www.booking.com/hotel/fr/des-grands-boulevards.html",
+        "coords": [
+          48.8566,
+          2.3522
+        ]
+      },
+      {
+        "name": "Brussels",
+        "country": "Belgium",
+        "hotel": "Made in Louise",
+        "cost": 220,
+        "highlights": "Grand Place (UNESCO), Atomium, Manneken Pis, Belgian waffles & chocolate",
+        "booking_url": "https://www.booking.com/hotel/be/made-in-louise.html",
+        "coords": [
+          50.8503,
+          4.3517
+        ]
+      },
+      {
+        "name": "Bruges",
+        "country": "Belgium",
+        "hotel": "Hotel Relais Bourgondisch Cruyce",
+        "cost": 291,
+        "highlights": "Canal boat tour, Belfort tower, Groeningemuseum (van Eyck), Begijnhof",
+        "booking_url": "https://www.booking.com/hotel/be/relais-bourgondisch-cruyce.html",
+        "coords": [
+          51.2093,
+          3.2247
+        ]
+      },
+      {
+        "name": "Ghent",
+        "country": "Belgium",
+        "hotel": "Pillows Grand Boutique Hotel Reylof",
+        "cost": 210,
+        "highlights": "Gravensteen Castle, Ghent Altarpiece (van Eyck), Graslei waterfront, street art",
+        "booking_url": "https://www.booking.com/hotel/be/reylof.html",
+        "coords": [
+          51.0543,
+          3.7174
+        ]
+      },
+      {
+        "name": "Rotterdam",
+        "country": "Netherlands",
+        "hotel": "Hotel Emma",
+        "cost": 175,
+        "highlights": "Markthal, Cube Houses (Blaak), Erasmus Bridge, Witte de Withstraat",
+        "booking_url": "https://www.booking.com/hotel/nl/emma.html",
+        "coords": [
+          51.9225,
+          4.4792
+        ]
+      },
+      {
+        "name": "Amsterdam",
+        "country": "Netherlands",
+        "hotel": "The Hoxton Amsterdam",
+        "cost": 280,
+        "highlights": "Rijksmuseum, Jordaan canals, De Pijp neighbourhood, Anne Frank House",
+        "booking_url": "https://www.booking.com/hotel/nl/the-hoxton-amsterdam.html",
+        "coords": [
+          52.3676,
+          4.9041
+        ]
+      }
+    ],
+    "latlngs": [
+      [
+        48.8566,
+        2.3522
+      ],
+      [
+        50.8503,
+        4.3517
+      ],
+      [
+        51.2093,
+        3.2247
+      ],
+      [
+        51.0543,
+        3.7174
+      ],
+      [
+        51.9225,
+        4.4792
+      ],
+      [
+        52.3676,
+        4.9041
+      ]
+    ]
+  }
+];
+
+const map = L.map('map').setView([50.2, 5.5], 6);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains: 'abcd', maxZoom: 19
+}).addTo(map);
+
+let activeRouteIdx = 0;
+const layers = [];
+const markerGroups = [];
+
+function makeIcon(color) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      width:14px;height:14px;border-radius:50%;
+      background:${color};border:2.5px solid white;
+      box-shadow:0 0 6px rgba(0,0,0,0.5);">
+    </div>`,
+    iconSize: [14, 14], iconAnchor: [7, 7]
+  });
+}
+
+function makeStartIcon() {
+  return L.divIcon({
+    className: '',
+    html: `<div style="font-size:22px;line-height:1;">🗼</div>`,
+    iconSize: [26, 26], iconAnchor: [13, 13]
+  });
+}
+
+function makeEndIcon() {
+  return L.divIcon({
+    className: '',
+    html: `<div style="font-size:22px;line-height:1;">🌷</div>`,
+    iconSize: [26, 26], iconAnchor: [13, 13]
+  });
+}
+
+ROUTES.forEach((route, idx) => {
+  const dash = idx === 0 ? null : (idx === 1 ? '10,6' : '4,8');
+  const line = L.polyline(route.latlngs, {
+    color: route.color, weight: 4, opacity: 0.9,
+    dashArray: dash
+  }).addTo(map);
+  line._origDash = dash;
+
+  const group = L.layerGroup();
+  route.cities.forEach((city, ci) => {
+    let icon;
+    if (city.name === 'Paris')     icon = makeStartIcon();
+    else if (city.name === 'Amsterdam') icon = makeEndIcon();
+    else icon = makeIcon(route.color);
+
+    const marker = L.marker(city.coords, { icon })
+      .bindTooltip(`<b>${city.name}</b><br>${route.name.split('–')[1].trim()}`, {
+        permanent: false, direction: 'top', offset: [0, -10]
+      })
+      .on('click', () => showCityDetail(city, route.color));
+
+    group.addLayer(marker);
+  });
+
+  layers.push({ line, group });
+  markerGroups.push(group);
+});
+
+function setActiveRoute(idx) {
+  activeRouteIdx = idx;
+
+  // All routes stay visible; active one pops, others step back gracefully
+  layers.forEach((l, i) => {
+    if (i === idx) {
+      l.line.setStyle({ opacity: 1, weight: 6, dashArray: null });
+      l.group.eachLayer(m => {
+        const el = m.getElement();
+        if (el) el.style.opacity = '1';
+      });
+      l.group.addTo(map);
+    } else {
+      l.line.setStyle({ opacity: 0.55, weight: 3, dashArray: l.line._origDash });
+      l.group.eachLayer(m => {
+        const el = m.getElement();
+        if (el) el.style.opacity = '0.45';
+      });
+      l.group.addTo(map);
+    }
+  });
+
+  // Update toggles
+  document.querySelectorAll('.route-toggle').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+
+  // Fit bounds
+  map.fitBounds(layers[idx].line.getBounds(), { padding: [40, 40] });
+
+  // Update city list
+  renderCityList(idx);
+  document.getElementById('city-detail').style.display = 'none';
+}
+
+function renderCityList(idx) {
+  const route = ROUTES[idx];
+  const el = document.getElementById('city-list');
+  el.innerHTML = route.cities.map(city => `
+    <div class="city-card" onclick='showCityDetail(${JSON.stringify(city)}, "${route.color}")'>
+      <div class="city-name">${city.name}, ${city.country}</div>
+      <div class="city-hotel">${city.hotel !== '—' ? city.hotel : 'Last day / departure'}</div>
+      ${city.cost > 0 ? `<div class="city-cost">~$${city.cost}/night</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function showCityDetail(city, color) {
+  const el = document.getElementById('city-detail');
+  const gmapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(city.name + ' ' + city.country)}`;
+  el.style.display = 'block';
+  el.innerHTML = `
+    <h3 style="color:${color}">${city.name} <span style="color:#aaa;font-weight:400;font-size:0.85rem">${city.country}</span></h3>
+    ${city.hotel !== '—' ? `
+      <div class="label">Hotel</div>
+      <div class="val">${city.hotel}</div>
+      <div class="label">Est. Cost</div>
+      <div class="val" style="color:#7ec8e3">~$${city.cost} / night</div>
+    ` : ''}
+    <div class="label">Must-See</div>
+    <div class="val">${city.highlights}</div>
+    <div style="margin-top:12px">
+      ${city.booking_url ? `<a href="${city.booking_url}" target="_blank">🏨 Book Hotel</a>` : ''}
+      <a href="${gmapsUrl}" target="_blank" class="gmaps-btn">📍 Google Maps</a>
+    </div>
+  `;
+  // Pan map to city
+  if (city.coords) map.panTo(city.coords, { animate: true });
+}
+
+// Build toggles
+const togglesEl = document.getElementById('route-toggles');
+ROUTES.forEach((route, idx) => {
+  const nights = route.cities.filter(c => c.cost > 0).length;
+  const total  = route.cities.reduce((s, c) => s + c.cost, 0);
+  const div = document.createElement('div');
+  div.className = 'route-toggle';
+  div.style.background = route.color + '22';
+  div.innerHTML = `
+    <div class="dot" style="background:${route.color}"></div>
+    <div>
+      <div class="name">${route.name}</div>
+      <div class="sub">${route.cities.map(c=>c.name).join(' → ')}</div>
+      <div class="cost">Est. lodging: ~$${total.toLocaleString()} total</div>
+    </div>
+  `;
+  div.addEventListener('click', () => setActiveRoute(idx));
+  togglesEl.appendChild(div);
+});
+
+// Build legend
+const legendEl = document.getElementById('legend');
+legendEl.innerHTML = ROUTES.map((r, i) => `
+  <div class="legend-item">
+    <div class="legend-line" style="background:${r.color};${i===1?'background:repeating-linear-gradient(90deg,'+r.color+' 0,'+r.color+' 6px,transparent 6px,transparent 10px)':i===2?'background:repeating-linear-gradient(90deg,'+r.color+' 0,'+r.color+' 4px,transparent 4px,transparent 8px)':''}"></div>
+    <span>${r.name.split('–')[1]?.trim()}</span>
+  </div>
+`).join('');
+
+// Initialize — add all lines and marker groups first, then highlight active
+layers.forEach(l => { l.line.addTo(map); l.group.addTo(map); });
+setActiveRoute(0);
+</script>
+</body>
+</html>
