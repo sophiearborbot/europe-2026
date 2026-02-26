@@ -412,6 +412,110 @@ const ROUTES = [
         4.9041
       ]
     ]
+  },
+  {
+    "name": "Route 4 \u2013 \ud83c\udf0d Iberian Arc & Morocco",
+    "color": "#f39c12",
+    "cities": [
+      {
+        "name": "Paris",
+        "country": "France",
+        "hotel": "H\u00f4tel des Grands Boulevards",
+        "cost": 320,
+        "highlights": "Eiffel Tower, Seine stroll, Le Marais dinner",
+        "booking_url": "https://www.booking.com/hotel/fr/des-grands-boulevards.html",
+        "coords": [
+          48.8566,
+          2.3522
+        ]
+      },
+      {
+        "name": "Barcelona",
+        "country": "Spain",
+        "hotel": "Casa Camper Barcelona",
+        "cost": 250,
+        "highlights": "Sagrada Fam\u00edlia (exterior/evening), Barceloneta beach, Gr\u00e0cia neighbourhood tapas",
+        "booking_url": "https://www.booking.com/hotel/es/casacamper.html",
+        "coords": [
+          41.3851,
+          2.1734
+        ]
+      },
+      {
+        "name": "Granada",
+        "country": "Spain",
+        "hotel": "Hotel Casa Morisca",
+        "cost": 220,
+        "highlights": "Arrive Granada, Albaic\u00edn evening walk, rooftop views of Alhambra lit up at night",
+        "booking_url": "https://www.booking.com/hotel/es/casamorisca.html",
+        "coords": [
+          37.1773,
+          -3.5986
+        ]
+      },
+      {
+        "name": "Tangier",
+        "country": "Morocco",
+        "hotel": "El Minzah Hotel",
+        "cost": 125,
+        "highlights": "Crossing the Strait of Gibraltar! Tangier Kasbah, Petit Socco, Caf\u00e9 Hafa (cliffside, Atlantic views)",
+        "booking_url": "https://www.booking.com/hotel/ma/el-minzah.html",
+        "coords": [
+          35.7673,
+          -5.7998
+        ]
+      },
+      {
+        "name": "Chefchaouen",
+        "country": "Morocco",
+        "hotel": "Lina Ryad & Spa",
+        "cost": 210,
+        "highlights": "The Blue City \u2014 every alley painted blue and white. Ras el-Maa waterfall, Plaza Uta el-Hammam, sunset from Spanish mosque hilltop",
+        "booking_url": "https://www.booking.com/hotel/ma/lina-ryad-spa.html",
+        "coords": [
+          35.1688,
+          -5.2692
+        ]
+      },
+      {
+        "name": "Amsterdam",
+        "country": "Netherlands",
+        "hotel": "The Hoxton Amsterdam",
+        "cost": 280,
+        "highlights": "Arrive Amsterdam evening \u2014 canal walk, dinner in Jordaan",
+        "booking_url": "https://www.booking.com/hotel/nl/the-hoxton-amsterdam.html",
+        "coords": [
+          52.3676,
+          4.9041
+        ]
+      }
+    ],
+    "latlngs": [
+      [
+        48.8566,
+        2.3522
+      ],
+      [
+        41.3851,
+        2.1734
+      ],
+      [
+        37.1773,
+        -3.5986
+      ],
+      [
+        35.7673,
+        -5.7998
+      ],
+      [
+        35.1688,
+        -5.2692
+      ],
+      [
+        52.3676,
+        4.9041
+      ]
+    ]
   }
 ];
 
@@ -454,12 +558,10 @@ function makeEndIcon() {
 }
 
 ROUTES.forEach((route, idx) => {
-  const dash = idx === 0 ? null : (idx === 1 ? '10,6' : '4,8');
   const line = L.polyline(route.latlngs, {
     color: route.color, weight: 4, opacity: 0.9,
-    dashArray: dash
+    dashArray: idx === 0 ? null : (idx === 1 ? '10,6' : '4,8')
   }).addTo(map);
-  line._origDash = dash;
 
   const group = L.layerGroup();
   route.cities.forEach((city, ci) => {
@@ -484,21 +586,14 @@ ROUTES.forEach((route, idx) => {
 function setActiveRoute(idx) {
   activeRouteIdx = idx;
 
-  // All routes stay visible; active one pops, others step back gracefully
   layers.forEach((l, i) => {
     if (i === idx) {
       l.line.setStyle({ opacity: 1, weight: 6, dashArray: null });
-      l.group.eachLayer(m => {
-        const el = m.getElement();
-        if (el) el.style.opacity = '1';
-      });
+      l.group.eachLayer(m => { const el = m.getElement(); if (el) el.style.opacity = '1'; });
       l.group.addTo(map);
     } else {
       l.line.setStyle({ opacity: 0.55, weight: 3, dashArray: l.line._origDash });
-      l.group.eachLayer(m => {
-        const el = m.getElement();
-        if (el) el.style.opacity = '0.45';
-      });
+      l.group.eachLayer(m => { const el = m.getElement(); if (el) el.style.opacity = '0.45'; });
       l.group.addTo(map);
     }
   });
@@ -580,7 +675,7 @@ legendEl.innerHTML = ROUTES.map((r, i) => `
   </div>
 `).join('');
 
-// Initialize — add all lines and marker groups first, then highlight active
+// Initialize
 layers.forEach(l => { l.line.addTo(map); l.group.addTo(map); });
 setActiveRoute(0);
 </script>
