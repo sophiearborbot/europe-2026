@@ -116,6 +116,8 @@
 <div class="legend" id="legend"></div>
 
 <script>
+const TRANSPORT_COSTS = {"Route 1 \u2013 \ud83c\udfd4\ufe0f Alpine Arc":{"Paris":{"cost":0,"note":"Starting city"},"Interlaken":{"cost":135,"note":"TGV Lyria Paris\u2192Basel + SBB Basel\u2192Interlaken. Book 60+ days ahead. Day trips extra (~$115 Jungfraujoch, ~$18 Lauterbrunnen)."},"Lucerne":{"cost":35,"note":"SBB Interlaken\u2192Lucerne (~2h, scenic lake route)"},"Cologne":{"cost":95,"note":"SBB + DB ICE Lucerne\u2192Basel\u2192Cologne (~4.5h total)"},"Amsterdam":{"cost":35,"note":"DB/NS ICE Cologne\u2192Amsterdam (~2.5h). Compulsory reservation required Jun\u2013Aug."}},"Route 2 \u2013 \ud83c\udff0 Rhine Valley":{"Paris":{"cost":0,"note":"Starting city"},"Strasbourg":{"cost":40,"note":"TGV INOUI Paris Gare de l'Est\u2192Strasbourg (~2h). Book early for ~$40."},"Heidelberg":{"cost":30,"note":"Regional: Strasbourg\u2192Karlsruhe\u2192Heidelberg (~1.5h)"},"Bacharach":{"cost":25,"note":"Regional: Heidelberg\u2192Mannheim\u2192Bacharach (~1.5h, scenic Rhine valley)"},"Cologne":{"cost":30,"note":"Regional RE: Bacharach\u2192Koblenz\u2192Cologne (~2h). Stop at Koblenz Deutsches Eck if time allows."},"Amsterdam":{"cost":35,"note":"DB/NS ICE Cologne\u2192Amsterdam (~2.5h). Compulsory reservation required Jun\u2013Aug."}},"Route 3 \u2013 \ud83c\udf7a Belgian Lowlands":{"Paris":{"cost":0,"note":"Starting city"},"Brussels":{"cost":55,"note":"Eurostar Paris Nord\u2192Brussels Midi (~1.5h). Book early for ~$55."},"Bruges":{"cost":18,"note":"NMBS/SNCB IC Brussels\u2192Bruges (~1h)"},"Ghent":{"cost":12,"note":"NMBS/SNCB IC Bruges\u2192Ghent (~30 min)"},"Rotterdam":{"cost":40,"note":"IC Ghent\u2192Antwerp\u2192Rotterdam (~2.5h, cross-border direct)"},"Amsterdam":{"cost":15,"note":"NS IC Rotterdam\u2192Amsterdam Centraal (~1h)"}},"Route 4 \u2013 \ud83c\udf0d Iberian Arc & Morocco":{"Paris":{"cost":0,"note":"Starting city"},"Barcelona":{"cost":80,"note":"TGV INOUI Paris Gare de Lyon\u2192Barcelona Sants (~6.5h). Book 60+ days ahead."},"Granada":{"cost":100,"note":"Renfe AVE Barcelona\u2192Madrid (~3h) + AVE/Alvia Madrid\u2192Granada (~3.5h). Two trains, same day."},"Tangier":{"cost":65,"note":"Bus Granada\u2192Algeciras (~$15) + ferry Tarifa\u2192Tangier Ville (~1h, ~$50). Very scenic crossing!"},"Chefchaouen":{"cost":10,"note":"CTM bus Tangier\u2192Chefchaouen (~2.5h, multiple daily departures)"},"Amsterdam":{"cost":170,"note":"CTM bus\u2192Tangier ($10) + ferry\u2192Tarifa ($50) + bus\u2192M\u00e1laga ($20) + \u2708\ufe0f Vueling/Ryanair M\u00e1laga\u2192Amsterdam (~$90). One flight required."}}};
+
 const ROUTES = [
   {
     "name": "Route 1 \u2013 \ud83c\udfd4\ufe0f Alpine Arc",
@@ -574,7 +576,7 @@ ROUTES.forEach((route, idx) => {
       .bindTooltip(`<b>${city.name}</b><br>${route.name.split('–')[1].trim()}`, {
         permanent: false, direction: 'top', offset: [0, -10]
       })
-      .on('click', () => showCityDetail(city, route.color));
+      .on('click', () => showCityDetail(city, route.color, route.name));
 
     group.addLayer(marker);
   });
@@ -615,7 +617,7 @@ function renderCityList(idx) {
   const route = ROUTES[idx];
   const el = document.getElementById('city-list');
   el.innerHTML = route.cities.map(city => `
-    <div class="city-card" onclick='showCityDetail(${JSON.stringify(city)}, "${route.color}")'>
+    <div class="city-card" onclick='showCityDetail(${JSON.stringify(city)}, "${route.color}", "${route.name}")'>
       <div class="city-name">${city.name}, ${city.country}</div>
       <div class="city-hotel">${city.hotel !== '—' ? city.hotel : 'Last day / departure'}</div>
       ${city.cost > 0 ? `<div class="city-cost">~$${city.cost}/night</div>` : ''}
@@ -623,17 +625,23 @@ function renderCityList(idx) {
   `).join('');
 }
 
-function showCityDetail(city, color) {
+function showCityDetail(city, color, routeName) {
   const el = document.getElementById('city-detail');
   const gmapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(city.name + ' ' + city.country)}`;
+  const t = (TRANSPORT_COSTS[routeName] || {})[city.name];
   el.style.display = 'block';
   el.innerHTML = `
     <h3 style="color:${color}">${city.name} <span style="color:#aaa;font-weight:400;font-size:0.85rem">${city.country}</span></h3>
     ${city.hotel !== '—' ? `
       <div class="label">Hotel</div>
       <div class="val">${city.hotel}</div>
-      <div class="label">Est. Cost</div>
-      <div class="val" style="color:#7ec8e3">~$${city.cost} / night</div>
+      <div class="label">Lodging / night</div>
+      <div class="val" style="color:#7ec8e3">~$${city.cost}</div>
+    ` : ''}
+    ${t && t.cost > 0 ? `
+      <div class="label">🚆 Getting Here</div>
+      <div class="val" style="color:#f39c12">~$${t.cost} / person</div>
+      <div class="val" style="font-size:0.78rem;color:#aaa;margin-top:2px;line-height:1.4">${t.note}</div>
     ` : ''}
     <div class="label">Must-See</div>
     <div class="val">${city.highlights}</div>
