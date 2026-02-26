@@ -657,7 +657,14 @@ function showCityDetail(city, color, routeName) {
 // Build toggles
 const togglesEl = document.getElementById('route-toggles');
 ROUTES.forEach((route, idx) => {
-  const lodging   = route.cities.reduce((s, c) => s + c.cost, 0);
+  // Lodging totals account for multi-night stays (cities deduplicated for map, not for cost)
+  const LODGING_TOTALS = {
+    "Route 1 \u2013 \ud83c\udfd4\ufe0f Alpine Arc":      2200,  // Paris×2 + Interlaken×3 + Lucerne×1 + Cologne×2 + Amsterdam×1
+    "Route 2 \u2013 \ud83c\udff0 Rhine Valley":     2025,  // Paris×2 + Strasbourg×2 + Heidelberg×1 + Bacharach×1 + Cologne×2 + Amsterdam×1
+    "Route 3 \u2013 \ud83c\udf7a Belgian Lowlands": 2327,  // Paris×2 + Brussels×2 + Bruges×2 + Ghent×1 + Rotterdam×1 + Amsterdam×1
+    "Route 4 \u2013 \ud83c\udf0d Iberian Arc & Morocco": 2115,  // Paris×1 + Barcelona×1 + Granada×2 + Tangier×1 + Chefchaouen×2 + Amsterdam×2
+  };
+  const lodging   = LODGING_TOTALS[route.name] || route.cities.reduce((s, c) => s + c.cost, 0);
   const transport = Object.values(TRANSPORT_COSTS[route.name] || {}).reduce((s, t) => s + (t.cost||0), 0);
   const totalPP   = lodging + transport;
   const div = document.createElement('div');
