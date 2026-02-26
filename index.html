@@ -565,10 +565,12 @@ ROUTES.forEach((route, idx) => {
     color: route.color, weight: 4, opacity: 0.9, dashArray: dash
   }).addTo(map);
   line._origDash = dash;
-  line.on('click', () => setActiveRoute(idx));
-  line.getElement && setTimeout(() => {
-    if (line.getElement()) line.getElement().style.cursor = 'pointer';
-  }, 100);
+  // Wide invisible hit area so tapping/clicking the route is easy on mobile
+  const hitLine = L.polyline(route.latlngs, {
+    color: 'transparent', weight: 24, opacity: 0, interactive: true
+  }).addTo(map);
+  hitLine.on('click', () => setActiveRoute(idx));
+  line.on('click',    () => setActiveRoute(idx));
 
   const group = L.layerGroup();
   route.cities.forEach((city, ci) => {
@@ -608,6 +610,7 @@ function setActiveRoute(idx) {
   // Update toggles
   document.querySelectorAll('.route-toggle').forEach((el, i) => {
     el.classList.toggle('active', i === idx);
+    if (i === idx) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 
   // Fit bounds
