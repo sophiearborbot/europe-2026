@@ -667,7 +667,7 @@ ROUTES.forEach((route, idx) => {
     <div>
       <div class="name">${route.name}</div>
       <div class="sub">${route.cities.map(c=>c.name).join(' → ')}</div>
-      <div class="cost">Est. lodging: ~$${total.toLocaleString()} total</div>
+      <div class="cost">Lodging ~$${total.toLocaleString()}/person · ×4 = $${(total*4).toLocaleString()}</div>
     </div>
   `;
   div.addEventListener('click', () => setActiveRoute(idx));
