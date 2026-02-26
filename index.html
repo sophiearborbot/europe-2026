@@ -560,10 +560,15 @@ function makeEndIcon() {
 }
 
 ROUTES.forEach((route, idx) => {
+  const dash = idx === 0 ? null : (idx === 1 ? '10,6' : (idx === 2 ? '4,8' : '8,4,2,4'));
   const line = L.polyline(route.latlngs, {
-    color: route.color, weight: 4, opacity: 0.9,
-    dashArray: idx === 0 ? null : (idx === 1 ? '10,6' : '4,8')
+    color: route.color, weight: 4, opacity: 0.9, dashArray: dash
   }).addTo(map);
+  line._origDash = dash;
+  line.on('click', () => setActiveRoute(idx));
+  line.getElement && setTimeout(() => {
+    if (line.getElement()) line.getElement().style.cursor = 'pointer';
+  }, 100);
 
   const group = L.layerGroup();
   route.cities.forEach((city, ci) => {
