@@ -278,6 +278,9 @@ ROUTES.forEach((route, idx) => {
     "Route 2 \u2013 \ud83c\udff0 Rhine Valley":     2025,  // Paris×2 + Strasbourg×2 + Heidelberg×1 + Bacharach×1 + Cologne×2 + Amsterdam×1
         "Route 3 – ⛰️ Alps & Prague": 1110,  // Interlaken×2=440 + Prague×2=390 + Amsterdam×1=280
     "Route 4 – 🌍 Iberian Arc & Morocco": 1335,  // Barcelona×2=500 + Granada×1=220 + Tangier×1=125 + Chefchaouen×1=210 + Amsterdam×1=280
+    "Route 5 – 🌊 Interlaken & Riviera": 1160,  // Interlaken×2=440 + Nice×2=560 + Menton×1=160
+    "Route 6 – 🌶️ Spain & Morocco Loop": 715,   // Málaga×2=380 + Tangier×1=125 + Chefchaouen×1=210
+    "Route 7 – 🏰 Languedoc & Provence": 1200,  // Carcassonne×2=560 + Nîmes×1=160 + Cassis×2=480
   };
 
   const TRANSIT_STATS = {
@@ -285,6 +288,9 @@ ROUTES.forEach((route, idx) => {
     "Route 2 – 🏰 Rhine Valley":          { avgNights: 1.5, trainH: 9.5,  busH: 0,  ferryH: 0, flightH: 0,  totalH: 9.5  },
     "Route 3 – ⛰️ Alps & Prague":       { avgNights: 1.7, trainH: 23.5, busH: 0,  ferryH: 0, flightH: 0,  totalH: 23.5 },
     "Route 4 – 🌍 Iberian Arc & Morocco": { avgNights: 1.2, trainH: 12.5, busH: 11, ferryH: 1, flightH: 3,  totalH: 27.5 },
+    "Route 5 – 🌊 Interlaken & Riviera": { avgNights: 1.7, trainH: 13.5, busH: 0,  ferryH: 0, flightH: 2,  totalH: 15.5 },
+    "Route 6 – 🌶️ Spain & Morocco Loop": { avgNights: 1.3, trainH: 0,    busH: 8,  ferryH: 1, flightH: 5.5,totalH: 14.5 },
+    "Route 7 – 🏰 Languedoc & Provence": { avgNights: 1.7, trainH: 7,    busH: 0,  ferryH: 0, flightH: 2,  totalH: 9   },
   };
   const lodging   = LODGING_TOTALS[route.name] || route.cities.reduce((s, c) => s + c.cost, 0);
   const transport = Object.values(TRANSPORT_COSTS[route.name] || {}).reduce((s, t) => s + (t.cost||0), 0);
